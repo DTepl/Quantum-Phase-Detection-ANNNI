@@ -14,9 +14,9 @@ def compute_clusters(centroids: jnp.ndarray, states: jnp.ndarray) -> List[List[i
         for state_index in range(len(states)):
             closest, index = fidelity(centroids[0], states[state_index])[0], 0
             for i in range(1, len(centroids)):
-                distance = fidelity(centroids[i], states[state_index])[0]
-                if distance < closest:
-                    closest, index = distance, i
+                similarity = fidelity(centroids[i], states[state_index])[0]
+                if similarity > closest:
+                    closest, index = similarity, i
             clusters[index].append(state_index)
             print(prog / len(states))
             prog += 1
