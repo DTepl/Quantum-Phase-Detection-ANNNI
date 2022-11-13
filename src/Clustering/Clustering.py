@@ -4,7 +4,6 @@ from jax import random
 import jax.numpy as jnp
 import progressbar
 
-
 def compute_mean(clusters: List, hamiltonian: qml.ops.qubit.hamiltonian.Hamiltonian) -> list[jnp.ndarray]:
     cluster_means = []
     for indexes in clusters:
@@ -93,8 +92,3 @@ class ClusteringVQE:
 
         if self.show_progress:
             self.bar.finish()
-
-
-ClusteringVQEObj = ClusteringVQE("../../data/vqes/ANNNI/N6n10", 3, 5)
-ClusteringVQEObj.cluster()
-print(ClusteringVQEObj.clusters)
