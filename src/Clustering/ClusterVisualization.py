@@ -6,7 +6,7 @@ from matplotlib.colors import LinearSegmentedColormap, LogNorm
 import jax.numpy as jnp
 import pennylane as qml
 
-from Clustering import ClusteringVQE
+from Clustering import ClusteringVQE, load
 
 
 def visualize_clusters(clusters: List[List], hamiltonians: qml.ops.qubit.hamiltonian.Hamiltonian):
@@ -44,9 +44,11 @@ def visualize_clusters(clusters: List[List], hamiltonians: qml.ops.qubit.hamilto
     plt.show()
 
 
-ClusteringVQEObj = ClusteringVQE("../../data/vqes/ANNNI/N12n100", 3, 5)
-ClusteringVQEObj.cluster()
-ClusteringVQEObj.save(
-    "../../data/clustering/N" + str(ClusteringVQEObj.vqe.Hs.N) + "n" + str(
-        int(jnp.sqrt(ClusteringVQEObj.vqe.Hs.n_states))))
+# ClusteringVQEObj = ClusteringVQE("../../data/vqes/ANNNI/N12n100", 3, 5)
+# ClusteringVQEObj.cluster()
+# ClusteringVQEObj.save(
+#    "../../data/clustering/N" + str(ClusteringVQEObj.vqe.Hs.N) + "n" + str(
+#        int(jnp.sqrt(ClusteringVQEObj.vqe.Hs.n_states))))
+
+ClusteringVQEObj = load("../../data/clustering/N12n100")
 visualize_clusters(ClusteringVQEObj.clusters, ClusteringVQEObj.vqe.Hs)
