@@ -3,6 +3,8 @@ import pennylane as qml
 from jax import random
 import jax.numpy as jnp
 import progressbar
+import pickle  # Writing and loading
+
 
 def compute_mean(clusters: List, hamiltonian: qml.ops.qubit.hamiltonian.Hamiltonian) -> list[jnp.ndarray]:
     cluster_means = []
@@ -92,3 +94,16 @@ class ClusteringVQE:
 
         if self.show_progress:
             self.bar.finish()
+
+    def save(self, filename):
+        if not isinstance(filename, str):
+            raise TypeError("Invalid name for file")
+
+        things_to_save = [
+            self.clusters,
+            self.num_clusters,
+            self.iterations,
+        ]
+
+        with open(filename, "wb") as f:
+            pickle.dump(things_to_save, f)
