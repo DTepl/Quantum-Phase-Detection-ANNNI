@@ -83,7 +83,11 @@ class ClusteringVQE:
 
     def cluster(self):
         # Initialize centroids randomly
-        centroids = random.choice(random.PRNGKey(0), self.vqe.vqe_params0, (self.num_clusters,))
+        # centroids = random.choice(random.PRNGKey(0), self.vqe.vqe_params0, (self.num_clusters,))
+        indeces = [find_nearest_state(self.vqe.Hs, jnp.array([0, 0.2, 0.125])),
+                   find_nearest_state(self.vqe.Hs, jnp.array([0, 0.2, 0.8])),
+                   find_nearest_state(self.vqe.Hs, jnp.array([0, 1.5, 0.5]))]
+        centroids = self.vqe.vqe_params0[indeces]
         if self.show_progress:
             self.progress = 0
             self.bar.start()
