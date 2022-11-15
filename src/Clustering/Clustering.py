@@ -1,5 +1,6 @@
 from PhaseEstimation.vqe import *
 import pennylane as qml
+import jax
 from jax import random
 import jax.numpy as jnp
 import progressbar
@@ -28,7 +29,7 @@ def compute_new_centroids_from_existing_states(mean_params: list[jnp.ndarray],
     for cluster_mean in mean_params:
         idx = find_nearest_state(hamiltonian, cluster_mean)
         new_centroids.append(states[idx])
-    return new_centroids
+    return jnp.array(new_centroids)
 
 
 class ClusteringVQE:
@@ -45,34 +46,33 @@ class ClusteringVQE:
                         progressbar.Bar('*'), ' (',
                         progressbar.ETA(), ') ', 'CLusters: ',
                         progressbar.FormatLabel(str([len(cluster) for cluster in self.clusters]))]
-        self.bar = progressbar.ProgressBar(maxval=self.iterations * len(self.vqe.vqe_params0) * self.num_clusters,
+        self.bar = progressbar.ProgressBar(maxval=self.iterations * len(self.vqe.vqe_params0),
                                            widgets=self.widgets)
 
         @qml.qnode(self.vqe.device, interface="jax")
         def fidelity(params_phi, params_psi):
             qml.adjoint(self.vqe.circuit)(params_phi)
             self.vqe.circuit(params_psi)
-
-            if self.show_progress:
-                self.progress += 1
-                self.bar.update(self.progress)
             return qml.probs(wires=[i for i in range(self.vqe.Hs.N)])  # Only interested in |000...0>
 
-        self.fidelity = fidelity
+        self.v_fidelity = jax.vmap(
+            lambda phi, psi: fidelity(phi, psi)[0], in_axes=(0, 0)
+        )  # vmap of the state circuit
+        self.jv_fidelity = jax.jit(
+            self.v_fidelity
+        )
 
     def compute_clusters(self, centroids: jnp.ndarray, states: jnp.ndarray) -> List[List[int]]:
         clusters = [[] for _ in centroids]
 
         if len(centroids) > 2:
             for state_index in range(len(states)):
-                closest, index = self.fidelity(centroids[0], states[state_index])[0], 0
-                for i in range(1, len(centroids)):
-                    similarity = self.fidelity(centroids[i], states[state_index])[0]
-                    if similarity > closest:
-                        closest, index = similarity, i
+                index = jnp.argmax(self.jv_fidelity(centroids, jnp.array([states[state_index] for _ in range(len(centroids))])))
                 clusters[index].append(state_index)
 
                 if self.show_progress:
+                    self.progress += 1
+                    self.bar.update(self.progress)
                     self.widgets[len(self.widgets) - 1] = progressbar.FormatLabel(
                         str([len(cluster) for cluster in clusters]))
             return clusters

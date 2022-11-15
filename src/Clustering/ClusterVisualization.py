@@ -40,12 +40,12 @@ def visualize_clusters(clusters: List[List], hamiltonians: qml.ops.qubit.hamilto
     )
     plt.colorbar(sc)
     plt.savefig(
-        "../../data/clustering/clustering_meaningParams_N" + str(hamiltonians.N) + "-n" + str(
-            hamiltonians.n_states) + ".png")
+        "../../data/clustering/clustering_meaningParams_N" + str(hamiltonians.N) + "n" + str(side) + ".png")
     plt.show()
 
 
-ClusteringVQEObj = ClusteringVQE("../../data/vqes/ANNNI/N6n10", 3, 5)
+ClusteringVQEObj = ClusteringVQE("../../data/vqes/ANNNI/N6n100", 3, 5)
 ClusteringVQEObj.cluster()
-ClusteringVQEObj.save("../../data/clustering/N" + str(ClusteringVQEObj.vqe.Hs.N) + "n" + str(ClusteringVQEObj.vqe.Hs.N))
+ClusteringVQEObj.save(
+    "../../data/clustering/N" + str(ClusteringVQEObj.vqe.Hs.N) + "n" + str(int(jnp.sqrt(ClusteringVQEObj.vqe.Hs.n_states))))
 visualize_clusters(ClusteringVQEObj.clusters, ClusteringVQEObj.vqe.Hs)
