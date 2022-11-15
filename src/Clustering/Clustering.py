@@ -11,8 +11,9 @@ def compute_mean(clusters: List, hamiltonian: qml.ops.qubit.hamiltonian.Hamilton
     cluster_means = []
     for indexes in clusters:
         cluster_means.append(
-            jnp.array([0, jnp.mean(hamiltonian.model_params[indexes, 1]),  # 0 as N should be untouched Mean for h
-                       jnp.mean(hamiltonian.model_params[indexes, 2])]))  # Mean for K
+            jnp.array(
+                [0, jax.jit(jnp.mean)(hamiltonian.model_params[indexes, 1]),  # 0 as N should be untouched Mean for h
+                 jax.jit(jnp.mean)(hamiltonian.model_params[indexes, 2])]))  # Mean for K
     return cluster_means
 
 
@@ -67,7 +68,8 @@ class ClusteringVQE:
 
         if len(centroids) > 2:
             for state_index in range(len(states)):
-                index = jnp.argmax(self.jv_fidelity(centroids, jnp.array([states[state_index] for _ in range(len(centroids))])))
+                index = jnp.argmax(
+                    self.jv_fidelity(centroids, jnp.array([states[state_index] for _ in range(len(centroids))])))
                 clusters[index].append(state_index)
 
                 if self.show_progress:
