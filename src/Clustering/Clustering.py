@@ -54,8 +54,8 @@ class ClusteringVQE:
 
         @qml.qnode(self.vqe.device, interface="jax")
         def fidelity(params_phi, params_psi):
-            qml.adjoint(self.vqe.circuit)(params_phi)
             self.vqe.circuit(params_psi)
+            qml.adjoint(self.vqe.circuit)(params_phi)
             return qml.probs(wires=[i for i in range(self.vqe.Hs.N)])  # Only interested in |000...0>
 
         self.v_fidelity = jax.vmap(
