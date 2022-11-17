@@ -12,9 +12,9 @@ from Clustering import ClusteringVQE, load
 def visualize_clusters(clusters: List[List], hamiltonians: qml.ops.qubit.hamiltonian.Hamiltonian):
     plt.figure(figsize=(8, 6), dpi=80)
     phases = mpl.colors.ListedColormap(
-        ["lightcoral", "skyblue", "black", "palegreen"]
+        ["lightcoral", "skyblue", "black", "palegreen", "yellow"]
     )
-    norm = mpl.colors.BoundaryNorm(jnp.arange(0, 4), phases.N)
+    norm = mpl.colors.BoundaryNorm(jnp.arange(0, len(clusters) + 1), phases.N)
     side = int(jnp.sqrt(hamiltonians.n_states))
 
     cluster_visual = [i for i in range(hamiltonians.n_states)]
@@ -40,15 +40,16 @@ def visualize_clusters(clusters: List[List], hamiltonians: qml.ops.qubit.hamilto
     )
     plt.colorbar(sc)
     plt.savefig(
-        "../../data/clustering/clustering_meaningParams_N" + str(hamiltonians.N) + "n" + str(side) + ".png")
+        "../../data/clustering/clustering_meaningParams_N" + str(
+            hamiltonians.N) + "n" + str(side) + "_" + str(len(clusters)) + "-clusters.png")
     plt.show()
 
 
-ClusteringVQEObj = ClusteringVQE("../../data/vqes/ANNNI/N4n100", 3, 5)
+ClusteringVQEObj = ClusteringVQE("../../data/vqes/ANNNI/N6n100", 3, 15)
 ClusteringVQEObj.cluster()
 ClusteringVQEObj.save(
-   "../../data/clustering/N" + str(ClusteringVQEObj.vqe.Hs.N) + "n" + str(
-       int(jnp.sqrt(ClusteringVQEObj.vqe.Hs.n_states))))
+    "../../data/clustering/N" + str(ClusteringVQEObj.vqe.Hs.N) + "n_" + str(
+        int(jnp.sqrt(ClusteringVQEObj.vqe.Hs.n_states))) + "_" + str(len(ClusteringVQEObj.clusters)) + "-clusters")
 
 # ClusteringVQEObj = load("../../data/clustering/N12n100")
 visualize_clusters(ClusteringVQEObj.clusters, ClusteringVQEObj.vqe.Hs)

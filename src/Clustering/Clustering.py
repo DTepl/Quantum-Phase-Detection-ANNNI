@@ -68,7 +68,7 @@ class ClusteringVQE:
     def compute_clusters(self, centroids: jnp.ndarray, states: jnp.ndarray) -> List[List[int]]:
         clusters = [[] for _ in centroids]
 
-        if len(centroids) > 2:
+        if len(centroids) > 1:
             for state_index in range(len(states)):
                 index = jnp.argmax(
                     self.jv_fidelity(centroids, jnp.array([states[state_index] for _ in range(len(centroids))])))
@@ -82,14 +82,15 @@ class ClusteringVQE:
             return clusters
         else:
             print("There must be at least 2 centroids to cluster!")
+            exit(1)
 
     def cluster(self):
         # Initialize centroids randomly
-        # centroids = random.choice(random.PRNGKey(0), self.vqe.vqe_params0, (self.num_clusters,))
-        indeces = [find_nearest_state(self.vqe.Hs, jnp.array([0, 1.5, -0.5])),
-                   find_nearest_state(self.vqe.Hs, jnp.array([0, 0.2, -0.125])),
-                   find_nearest_state(self.vqe.Hs, jnp.array([0, 0.2, -0.8])), ]
-        centroids = self.vqe.vqe_params0[indeces]
+        centroids = random.choice(random.PRNGKey(0), self.vqe.vqe_params0, (self.num_clusters,))
+        # indeces = [find_nearest_state(self.vqe.Hs, jnp.array([0, 1.5, -0.5])),
+        #            find_nearest_state(self.vqe.Hs, jnp.array([0, 0.2, -0.125])),
+        #            find_nearest_state(self.vqe.Hs, jnp.array([0, 0.2, -0.8])), ]
+        # centroids = self.vqe.vqe_params0[indeces]
         if self.show_progress:
             self.progress = 0
             self.bar.start()
