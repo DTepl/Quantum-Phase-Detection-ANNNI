@@ -1,10 +1,37 @@
 from PhaseEstimation.vqe import *
+from PhaseEstimation import general as qmlgen
 import pennylane as qml
 import jax
 from jax import random
 import jax.numpy as jnp
 import progressbar
 import pickle  # Writing and loading
+
+def get_H_eigvec_operator(mat_H: List[List[int]], N: int, en_lvl: int):
+    """
+    Function for getting the operator which is transforming |00...0> to the desired eigenvector
+
+    Parameters
+    ----------
+    qml_H : pennylane.ops.qubit.hamiltonian.Hamiltonian
+        Pennylane Hamiltonian of the state
+    N : int
+        Number of Qubits
+    en_lvl : int
+        Energy level desired
+
+    Returns
+    -------
+    np.ndarray
+        Operator which transforms |00...0>
+    """
+
+    # Compute sorted eigenvalues with jitted function
+    eigvals, eigvecs = qmlgen.j_linalgeigh(mat_H)
+
+    psi = eigvecs[:, jnp.argsort(eigvals)[en_lvl]]
+
+    return qml.matrix(qml.QubitStateVector(psi, wires=range(N)))
 
 
 def compute_mean(clusters: List, hamiltonian: qml.ops.qubit.hamiltonian.Hamiltonian) -> list[jnp.ndarray]:
@@ -52,17 +79,35 @@ class ClusteringVQE:
         self.bar = progressbar.ProgressBar(maxval=self.iterations * len(self.vqe.vqe_params0),
                                            widgets=self.widgets)
 
+        self.eigenvecs_op = jnp.array(
+            [get_H_eigvec_operator(jnp.real(qml.matrix(H)).astype(jnp.float64), self.vqe.Hs.N, 0) for H in
+             self.vqe.Hs.qml_Hs])
+
         @qml.qnode(self.vqe.device, interface="jax")
-        def fidelity(params_phi, params_psi):
+        def fidelity_vqe(params_phi, params_psi):
             self.vqe.circuit(params_psi)
             qml.adjoint(self.vqe.circuit)(params_phi)
+            return qml.probs(wires=range(self.vqe.Hs.N))  # Only interested in |000...0>
+
+        self.v_fidelity_vqe = jax.vmap(
+            lambda phi, psi: fidelity_vqe(phi, psi)[0], in_axes=(0, 0)
+        )  # vmap of the state circuit
+        self.jv_fidelity_vqe = jax.jit(
+            self.v_fidelity_vqe
+        )
+
+        @qml.qnode(self.vqe.device, interface="jax")
+        def fidelity_true_circuit(op_phi, op_psi):
+            qml.QubitUnitary(op_phi, wires=range(self.vqe.Hs.N))
+            qml.adjoint(qml.QubitUnitary)(op_psi, wires=range(self.vqe.Hs.N))
             return qml.probs(wires=[i for i in range(self.vqe.Hs.N)])  # Only interested in |000...0>
 
-        self.v_fidelity = jax.vmap(
-            lambda phi, psi: fidelity(phi, psi)[0], in_axes=(0, 0)
+        self.v_fidelity_true = jax.vmap(
+            lambda phi, psi: fidelity_true_circuit(phi, psi)[0], in_axes=(0, 0)
         )  # vmap of the state circuit
-        self.jv_fidelity = jax.jit(
-            self.v_fidelity
+
+        self.jv_fidelity_true = jax.jit(
+            self.v_fidelity_true
         )
 
     def compute_clusters(self, centroids: jnp.ndarray, states: jnp.ndarray) -> List[List[int]]:
@@ -70,8 +115,10 @@ class ClusteringVQE:
 
         if len(centroids) > 1:
             for state_index in range(len(states)):
+                # index = jnp.argmax(
+                #     self.jv_fidelity_vqe(centroids, jnp.array([states[state_index] for _ in range(len(centroids))])))
                 index = jnp.argmax(
-                    self.jv_fidelity(centroids, jnp.array([states[state_index] for _ in range(len(centroids))])))
+                    self.jv_fidelity_true(centroids, jnp.array([states[state_index] for _ in range(len(centroids))])))
                 clusters[index].append(state_index)
 
                 if self.show_progress:
@@ -86,7 +133,8 @@ class ClusteringVQE:
 
     def cluster(self):
         # Initialize centroids randomly
-        centroids = random.choice(random.PRNGKey(0), self.vqe.vqe_params0, (self.num_clusters,))
+        # centroids = random.choice(random.PRNGKey(0), self.vqe.vqe_params0, (self.num_clusters,))
+        centroids = random.choice(random.PRNGKey(0), self.eigenvecs_op, (self.num_clusters,))
         # indeces = [find_nearest_state(self.vqe.Hs, jnp.array([0, 1.5, -0.5])),
         #            find_nearest_state(self.vqe.Hs, jnp.array([0, 0.2, -0.125])),
         #            find_nearest_state(self.vqe.Hs, jnp.array([0, 0.2, -0.8])), ]
@@ -96,9 +144,11 @@ class ClusteringVQE:
             self.bar.start()
 
         for i in range(self.iterations):
-            self.clusters = self.compute_clusters(centroids, self.vqe.vqe_params0)
+            # self.clusters = self.compute_clusters(centroids, self.vqe.vqe_params0)
+            self.clusters = self.compute_clusters(centroids, self.eigenvecs_op)
             self.mean_params = compute_mean(self.clusters, self.vqe.Hs)
-            centroids = compute_new_centroids_from_existing_states(self.mean_params, self.vqe.Hs, self.vqe.vqe_params0)
+            # centroids = compute_new_centroids_from_existing_states(self.mean_params, self.vqe.Hs, self.vqe.vqe_params0)
+            centroids = compute_new_centroids_from_existing_states(self.mean_params, self.vqe.Hs, self.eigenvecs_op)
 
         if self.show_progress:
             self.bar.finish()
