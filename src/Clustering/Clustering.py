@@ -1,37 +1,11 @@
 from PhaseEstimation.vqe import *
-from PhaseEstimation import general as qmlgen
 import pennylane as qml
 import jax
 from jax import random
 import jax.numpy as jnp
 import progressbar
+import General
 import pickle  # Writing and loading
-
-def get_H_eigvec_operator(mat_H: List[List[int]], N: int, en_lvl: int):
-    """
-    Function for getting the operator which is transforming |00...0> to the desired eigenvector
-
-    Parameters
-    ----------
-    qml_H : pennylane.ops.qubit.hamiltonian.Hamiltonian
-        Pennylane Hamiltonian of the state
-    N : int
-        Number of Qubits
-    en_lvl : int
-        Energy level desired
-
-    Returns
-    -------
-    np.ndarray
-        Operator which transforms |00...0>
-    """
-
-    # Compute sorted eigenvalues with jitted function
-    eigvals, eigvecs = qmlgen.j_linalgeigh(mat_H)
-
-    psi = eigvecs[:, jnp.argsort(eigvals)[en_lvl]]
-
-    return qml.matrix(qml.QubitStateVector(psi, wires=range(N)))
 
 
 def compute_mean(clusters: List, hamiltonian: qml.ops.qubit.hamiltonian.Hamiltonian) -> list[jnp.ndarray]:
@@ -79,9 +53,9 @@ class ClusteringVQE:
         self.bar = progressbar.ProgressBar(maxval=self.iterations * len(self.vqe.vqe_params0),
                                            widgets=self.widgets)
 
-        self.eigenvecs_op = jnp.array(
-            [get_H_eigvec_operator(jnp.real(qml.matrix(H)).astype(jnp.float64), self.vqe.Hs.N, 0) for H in
-             self.vqe.Hs.qml_Hs])
+        with open("../../data/clustering/an_eigvecs_op/N" + str(self.vqe.Hs.N) + "n" + str(
+                int(jnp.sqrt(self.vqe.Hs.n_states))), "rb") as f:
+            self.eigenvecs_op = pickle.load(f)[0]
 
         @qml.qnode(self.vqe.device, interface="jax")
         def fidelity_vqe(params_phi, params_psi):
@@ -182,3 +156,7 @@ def load(filename):
     loaded_clustering.clusters = clusters
     loaded_clustering.mean_params = mean_params
     return loaded_clustering
+
+
+vqe = load_vqe("../../data/vqes/ANNNI/N6n100")
+General.compute_eigenvec_operators(vqe.Hs)
