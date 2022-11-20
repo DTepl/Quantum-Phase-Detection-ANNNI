@@ -53,31 +53,31 @@ class ClusteringVQE:
         self.bar = progressbar.ProgressBar(maxval=self.iterations * len(self.vqe.vqe_params0),
                                            widgets=self.widgets)
 
-        with open("../../data/clustering/an_eigvecs_op/N" + str(self.vqe.Hs.N) + "n" + str(
+        with open("../../data/clustering/an_eigvecs/N" + str(self.vqe.Hs.N) + "n" + str(
                 int(jnp.sqrt(self.vqe.Hs.n_states))), "rb") as f:
-            self.eigenvecs_op = pickle.load(f)[0]
+            self.eigenvecs = pickle.load(f)[0]
 
         @qml.qnode(self.vqe.device, interface="jax")
         def fidelity_vqe(params_phi, params_psi):
             self.vqe.circuit(params_psi)
             qml.adjoint(self.vqe.circuit)(params_phi)
-            return qml.probs(wires=range(self.vqe.Hs.N))  # Only interested in |000...0>
+            return qml.probs(wires=range(self.vqe.Hs.N))
 
         self.v_fidelity_vqe = jax.vmap(
-            lambda phi, psi: fidelity_vqe(phi, psi)[0], in_axes=(0, 0)
+            lambda phi, psi: fidelity_vqe(phi, psi)[0], in_axes=(0, 0)  # Only interested in |000...0>
         )  # vmap of the state circuit
         self.jv_fidelity_vqe = jax.jit(
             self.v_fidelity_vqe
         )
 
         @qml.qnode(self.vqe.device, interface="jax")
-        def fidelity_true_circuit(op_phi, op_psi):
-            qml.QubitUnitary(op_phi, wires=range(self.vqe.Hs.N))
-            qml.adjoint(qml.QubitUnitary)(op_psi, wires=range(self.vqe.Hs.N))
-            return qml.probs(wires=[i for i in range(self.vqe.Hs.N)])  # Only interested in |000...0>
+        def fidelity_true_circuit(state_phi, state_psi):
+            qml.MottonenStatePreparation(state_phi, wires=range(self.vqe.Hs.N))
+            qml.adjoint(qml.MottonenStatePreparation)(state_psi, wires=range(self.vqe.Hs.N))
+            return qml.probs(wires=[i for i in range(self.vqe.Hs.N)])
 
         self.v_fidelity_true = jax.vmap(
-            lambda phi, psi: fidelity_true_circuit(phi, psi)[0], in_axes=(0, 0)
+            lambda phi, psi: fidelity_true_circuit(phi, psi)[0], in_axes=(0, 0)  # Only interested in |000...0>
         )  # vmap of the state circuit
 
         self.jv_fidelity_true = jax.jit(
@@ -108,7 +108,7 @@ class ClusteringVQE:
     def cluster(self):
         # Initialize centroids randomly
         # centroids = random.choice(random.PRNGKey(0), self.vqe.vqe_params0, (self.num_clusters,))
-        centroids = random.choice(random.PRNGKey(0), self.eigenvecs_op, (self.num_clusters,))
+        centroids = random.choice(random.PRNGKey(0), self.eigenvecs, (self.num_clusters,))
         # indeces = [find_nearest_state(self.vqe.Hs, jnp.array([0, 1.5, -0.5])),
         #            find_nearest_state(self.vqe.Hs, jnp.array([0, 0.2, -0.125])),
         #            find_nearest_state(self.vqe.Hs, jnp.array([0, 0.2, -0.8])), ]
@@ -119,10 +119,10 @@ class ClusteringVQE:
 
         for i in range(self.iterations):
             # self.clusters = self.compute_clusters(centroids, self.vqe.vqe_params0)
-            self.clusters = self.compute_clusters(centroids, self.eigenvecs_op)
+            self.clusters = self.compute_clusters(centroids, self.eigenvecs)
             self.mean_params = compute_mean(self.clusters, self.vqe.Hs)
             # centroids = compute_new_centroids_from_existing_states(self.mean_params, self.vqe.Hs, self.vqe.vqe_params0)
-            centroids = compute_new_centroids_from_existing_states(self.mean_params, self.vqe.Hs, self.eigenvecs_op)
+            centroids = compute_new_centroids_from_existing_states(self.mean_params, self.vqe.Hs, self.eigenvecs)
 
         if self.show_progress:
             self.bar.finish()
@@ -157,6 +157,5 @@ def load(filename):
     loaded_clustering.mean_params = mean_params
     return loaded_clustering
 
-
-vqe = load_vqe("../../data/vqes/ANNNI/N6n100")
-General.compute_eigenvec_operators(vqe.Hs)
+# vqe = load_vqe("../../data/vqes/ANNNI/N12n100")
+# General.compute_eigenvecs(vqe.Hs)

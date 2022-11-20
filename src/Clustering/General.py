@@ -35,12 +35,12 @@ def get_H_eigvec_operator(mat_H: List[List[int]], N: int, en_lvl: int):
     return psi
 
 
-def compute_eigenvec_operators(hamiltonians: qml.ops.qubit.hamiltonian.Hamiltonian):
+def compute_eigenvecs(hamiltonians: qml.ops.qubit.hamiltonian.Hamiltonian):
     matr = []
     progress = 0
     widgets = [' [', progressbar.Timer(format='elapsed time: %(elapsed)s'), '] ', progressbar.AnimatedMarker(),
                progressbar.Bar('*'), ' (', progressbar.ETA(), ') ']
-    bar = progressbar.ProgressBar(maxval=3 * len(hamiltonians.qml_Hs),
+    bar = progressbar.ProgressBar(maxval=2 * len(hamiltonians.qml_Hs),
                                   widgets=widgets)
 
     bar.start()
@@ -55,19 +55,13 @@ def compute_eigenvec_operators(hamiltonians: qml.ops.qubit.hamiltonian.Hamiltoni
     )
     jv_get_op = jax.jit(v_get_op)
 
-    inter_res = jv_get_op(jnp.array(matr))
+    res = jv_get_op(jnp.array(matr))
     progress += len(hamiltonians.qml_Hs)
     bar.update(progress)
 
-    res = []
-    for state in inter_res:
-        res.append(qml.matrix(qml.QubitStateVector(state, wires=range(hamiltonians.N))))
-        progress += 1
-        bar.update(progress)
+    things_to_save = [res, hamiltonians.model_params]
 
-    things_to_save = [jnp.array(res)]
-
-    with open("../../data/clustering/an_eigvecs_op/N" + str(hamiltonians.N) + "n" + str(
+    with open("../../data/clustering/an_eigvecs/N" + str(hamiltonians.N) + "n" + str(
             int(jnp.sqrt(hamiltonians.n_states))), "wb") as f:
         pickle.dump(things_to_save, f)
 
