@@ -35,9 +35,18 @@ def get_H_eigvec_operator(mat_H: List[List[int]], N: int, en_lvl: int):
     return psi
 
 
-def compute_eigenvecs(hamiltonians: qml.ops.qubit.hamiltonian.Hamiltonian):
+def compute_eigenvecs(hamiltonians: qml.ops.qubit.hamiltonian.Hamiltonian, big=False, compute_every=100):
     matr = []
+
+    res = jnp.array([]).reshape(0, 2**hamiltonians.N)
+
+    v_get_op = jax.vmap(
+        lambda matrix: get_H_eigvec_operator(matrix, hamiltonians.N, 0), in_axes=(0)
+    )
+    jv_get_op = jax.jit(v_get_op)
+
     progress = 0
+
     widgets = [' [', progressbar.Timer(format='elapsed time: %(elapsed)s'), '] ', progressbar.AnimatedMarker(),
                progressbar.Bar('*'), ' (', progressbar.ETA(), ') ']
     bar = progressbar.ProgressBar(maxval=2 * len(hamiltonians.qml_Hs),
@@ -45,19 +54,21 @@ def compute_eigenvecs(hamiltonians: qml.ops.qubit.hamiltonian.Hamiltonian):
 
     bar.start()
 
-    for qml_H in hamiltonians.qml_Hs:
-        matr.append(jnp.real(qml.matrix(qml_H)))
+    for i, qml_H in enumerate(hamiltonians.qml_Hs, 1):
+        matr.append(jnp.real(qml.matrix(qml_H).astype(jnp.complex64)).astype(jnp.single))
         progress += 1
         bar.update(progress)
 
-    v_get_op = jax.vmap(
-        lambda matr: get_H_eigvec_operator(matr, hamiltonians.N, 0), in_axes=(0)
-    )
-    jv_get_op = jax.jit(v_get_op)
+        if big & (i%compute_every == 0):
+            res = jnp.concatenate((res, jv_get_op(jnp.array(matr))))
+            matr = []
+            progress += compute_every
+            bar.update(progress)
 
-    res = jv_get_op(jnp.array(matr))
-    progress += len(hamiltonians.qml_Hs)
-    bar.update(progress)
+    if len(matr) != 0:
+        res = jnp.concatenate((res, jv_get_op(jnp.array(matr))))
+        progress += len(matr)
+        bar.update(progress)
 
     things_to_save = [res, hamiltonians.model_params]
 

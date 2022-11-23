@@ -158,4 +158,4 @@ def load(filename):
     return loaded_clustering
 
 # vqe = load_vqe("../../data/vqes/ANNNI/N12n100")
-# General.compute_eigenvecs(vqe.Hs)
+# General.compute_eigenvecs(vqe.Hs, big=True, compute_every=500)
