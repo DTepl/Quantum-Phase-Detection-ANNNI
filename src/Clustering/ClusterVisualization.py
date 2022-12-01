@@ -1,15 +1,27 @@
-from typing import List
+from typing import List, Callable
 
 import matplotlib as mpl
 from matplotlib import pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap, LogNorm
 import jax.numpy as jnp
+from pennylane import numpy as np
 import pennylane as qml
 
-from Clustering import ClusteringVQE, load
+from Clustering import ClusteringVQE, load, Mode
+from PhaseEstimation import general as qmlgen
 
 
-def visualize_clusters(clusters: List[List], hamiltonians: qml.ops.qubit.hamiltonian.Hamiltonian):
+def getlines(
+        func: Callable, xrange: List[float], side: int, color: str, res: int = 100
+):
+    """
+    Plot function func from xrange[0] to xrange[1]
+    """
+    xs = np.linspace(xrange[0], xrange[1], res)
+    ys = func(xs)
+    plt.plot(side * xs - 0.5, side - ys * side / 2 - 0.5, color=color, alpha=0.8)
+
+
+def visualize_clusters(clusters: List[List], hamiltonians: qml.ops.qubit.hamiltonian.Hamiltonian, morelines=False):
     plt.figure(figsize=(8, 6), dpi=80)
     phases = mpl.colors.ListedColormap(
         ["lightcoral", "skyblue", "black", "palegreen", "yellow"]
@@ -38,18 +50,25 @@ def visualize_clusters(clusters: List[List], hamiltonians: qml.ops.qubit.hamilto
         labels=[jnp.round(k * 2 / 4, 2) for k in range(4, -1, -1)],
         fontsize=18,
     )
+
+    getlines(qmlgen.paraanti, [0.5, 1], side, "white", res=100)
+    getlines(qmlgen.paraferro, [0, 0.5], side, "white", res=100)
+    if morelines:
+        getlines(qmlgen.peshel_emery, [0, 0.5], side, "cyan", res=100)
+        getlines(qmlgen.b1, [0.5, 1], side, "blue", res=100)
+
     plt.colorbar(sc)
     plt.savefig(
-        "../../data/clustering/clustering_meaningParams_N" + str(
+        "../../data/clustering/figures/clustering_meaningParams_N" + str(
             hamiltonians.N) + "n" + str(side) + "_" + str(len(clusters)) + "-clusters.png")
     plt.show()
 
 
-ClusteringVQEObj = ClusteringVQE("../../data/vqes/ANNNI/N12n100", 3, 10)
+ClusteringVQEObj = ClusteringVQE("../../data/vqes/ANNNI/N6n100", 3, 5, mode=Mode.quantum_analytical)
 ClusteringVQEObj.cluster()
 ClusteringVQEObj.save(
-    "../../data/clustering/N" + str(ClusteringVQEObj.vqe.Hs.N) + "n_" + str(
-        int(jnp.sqrt(ClusteringVQEObj.vqe.Hs.n_states))) + "_" + str(len(ClusteringVQEObj.clusters)) + "-clusters")
+    "../../data/clustering/clusters/N" + str(ClusteringVQEObj.vqe.Hs.N) + "_n" + str(
+        int(jnp.sqrt(ClusteringVQEObj.vqe.Hs.n_states))) + "_c" + str(ClusteringVQEObj.num_clusters))
 
-# ClusteringVQEObj = load("../../data/clustering/N12n100")
+# ClusteringVQEObj = load("../../data/clustering/clusters/N6_n100_c3")
 visualize_clusters(ClusteringVQEObj.clusters, ClusteringVQEObj.vqe.Hs)
