@@ -1,5 +1,5 @@
 from PhaseEstimation.vqe import *
-from jax import random
+import random
 from enum import Enum
 import pennylane as qml
 import jax
@@ -47,7 +47,7 @@ class ClusteringVQE:
         self.path_to_vqe_file = path_to_vqe_file
         self.num_clusters = num_clusters
         self.iterations = iterations
-        self.clusters = [[] for i in range(num_clusters)]
+        self.clusters = [[] for _ in range(num_clusters)]
         self.mean_params = None
 
         if mode == Mode.vqe:
@@ -113,13 +113,17 @@ class ClusteringVQE:
             print("There must be at least 2 centroids to cluster!")
             exit(1)
 
-    def cluster(self):
+    def cluster(self, threshold=0):
         # Initialize centroids randomly
-        centroids = random.choice(random.PRNGKey(0), self.data_points, (self.num_clusters,))
-        # indeces = [find_nearest_state(self.vqe.Hs, jnp.array([0, 1.5, -0.5])),
+        centroid_indices = random.choices(range(len(self.data_points)), k=self.num_clusters)
+        centroids = self.data_points[centroid_indices]
+        old_mean_params = self.vqe.Hs.model_params[centroid_indices]
+
+        # indeces = jnp.array([find_nearest_state(self.vqe.Hs, jnp.array([0, 1.5, -0.5])),
         #            find_nearest_state(self.vqe.Hs, jnp.array([0, 0.2, -0.125])),
-        #            find_nearest_state(self.vqe.Hs, jnp.array([0, 0.2, -0.8])), ]
+        #            find_nearest_state(self.vqe.Hs, jnp.array([0, 0.2, -0.8]))])
         # centroids = self.data_points[indeces]
+
         if self.show_progress:
             self.progress = 0
             self.bar.start()
@@ -128,6 +132,12 @@ class ClusteringVQE:
             self.clusters = self.compute_clusters(centroids, self.data_points)
             self.mean_params = compute_mean(self.clusters, self.vqe.Hs)
             centroids = compute_new_centroids_from_existing_states(self.mean_params, self.vqe.Hs, self.data_points)
+
+            diff = (old_mean_params - jnp.array(self.mean_params))[:, [1, 2]]
+            old_mean_params = jnp.array(self.mean_params.copy())
+
+            if (diff <= threshold).all():
+                break
 
         if self.show_progress:
             self.bar.finish()

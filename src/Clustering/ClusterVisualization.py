@@ -2,7 +2,6 @@ from typing import List, Callable
 
 import matplotlib as mpl
 import jax.numpy as jnp
-from pennylane import numpy as np
 import pennylane as qml
 
 from matplotlib import pyplot as plt
@@ -45,8 +44,8 @@ def visualize_clusters(clusters: List[List], hamiltonians: qml.ops.qubit.hamilto
         fontsize=18,
     )
 
-    getlines(qmlgen.paraanti, [0.5, 1], side, "white", res=100)
-    getlines(qmlgen.paraferro, [0, 0.5], side, "white", res=100)
+    getlines(qmlgen.paraanti, [0.5, 1], side, "lightgreen", res=100)
+    getlines(qmlgen.paraferro, [0, 0.5], side, "lightgreen", res=100)
     if morelines:
         getlines(qmlgen.peshel_emery, [0, 0.5], side, "cyan", res=100)
         getlines(qmlgen.b1, [0.5, 1], side, "blue", res=100)
@@ -58,12 +57,13 @@ def visualize_clusters(clusters: List[List], hamiltonians: qml.ops.qubit.hamilto
     plt.show()
 
 
-mode = Mode.quantum_analytical
-ClusteringVQEObj = ClusteringVQE("../../data/vqes/ANNNI/N8n100", 3, 5, mode=mode)
-ClusteringVQEObj.cluster()
+mode = Mode.analytical
+ClusteringVQEObj = ClusteringVQE("../../data/vqes/ANNNI/N10n100", 3, 50, mode=mode)
+ClusteringVQEObj.cluster(threshold=0.01)
 ClusteringVQEObj.save(
     "../../data/clustering/clusters/N" + str(ClusteringVQEObj.vqe.Hs.N) + "n" + str(
-        int(jnp.sqrt(ClusteringVQEObj.vqe.Hs.n_states))) + "c" + str(ClusteringVQEObj.num_clusters) + "m" + str(mode.value))
+        int(jnp.sqrt(ClusteringVQEObj.vqe.Hs.n_states))) + "c" + str(ClusteringVQEObj.num_clusters) + "m" + str(
+        mode.value))
 
 # ClusteringVQEObj = load("../../data/clustering/clusters/N6n100c3")
 visualize_clusters(ClusteringVQEObj.clusters, ClusteringVQEObj.vqe.Hs)
