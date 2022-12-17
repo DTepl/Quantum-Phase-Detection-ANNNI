@@ -2,6 +2,7 @@ from PhaseEstimation.vqe import *
 import random
 from enum import Enum
 import pennylane as qml
+from sympy.utilities.iterables import multiset_permutations
 import jax
 import jax.numpy as jnp
 import progressbar
@@ -141,6 +142,46 @@ class ClusteringVQE:
 
         if self.show_progress:
             self.bar.finish()
+
+    def compute_accuracy(self):
+        side = jnp.sqrt(self.vqe.Hs.n_states)
+        permutations = list(multiset_permutations([[0, 1], [1, 0], [1, 1]]))
+        predictions = [[0] * self.vqe.Hs.n_states for _ in permutations]
+
+        for i, cluster in enumerate(self.clusters):
+            for index in cluster:
+                for x, permutation in enumerate(permutations):
+                    predictions[x][index] = permutation[i]
+
+        # Compare predictions to actual states
+        # applying inequalities to theoretical curves
+        labels = []
+        for idx in range(self.vqe.Hs.n_states):
+            # compute coordinates and normalize for x in [0,1]
+            # and y in [0,2]
+            x = (idx // side) / side
+            y = 2 * (idx % side) / side
+
+            # If x==0 we get into 0/0 on the theoretical curve
+            if x == 0:
+                if 1 <= y:
+                    labels.append([1, 1])
+                else:
+                    labels.append([0, 1])
+            elif x <= 0.5:
+                if qmlgen.paraferro(x) <= y:
+                    labels.append([1, 1])
+                else:
+                    labels.append([0, 1])
+            else:
+                if (qmlgen.paraanti(x)) <= y:
+                    labels.append([1, 1])
+                else:
+                    labels.append([1, 0])
+
+        correct = jnp.sum(jnp.array(labels) == jnp.array(predictions), axis=2).astype(int) == 2
+        accuracy = (jnp.sum(correct, axis=1) / (side * side)).max()
+        return accuracy
 
     def save(self, filename):
         if not isinstance(filename, str):

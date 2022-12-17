@@ -28,7 +28,7 @@ def visualize_clusters(clusters: List[List], hamiltonians: qml.ops.qubit.hamilto
     norm = mpl.colors.BoundaryNorm(jnp.arange(0, len(clusters) + 1), phases.N)
     side = int(jnp.sqrt(hamiltonians.n_states))
 
-    cluster_visual = [i for i in range(hamiltonians.n_states)]
+    cluster_visual = [0] * hamiltonians.n_states
 
     for i, cluster in enumerate(clusters):
         for index in cluster:
@@ -65,11 +65,12 @@ def visualize_clusters(clusters: List[List], hamiltonians: qml.ops.qubit.hamilto
 
 mode = Mode.analytical
 ClusteringVQEObj = ClusteringVQE("../../data/vqes/ANNNI/N10n100", 3, 50, mode=mode)
-ClusteringVQEObj.cluster(threshold=0.005)
+ClusteringVQEObj.cluster(threshold=0.001)
 ClusteringVQEObj.save(
     "../../data/clustering/clusters/N" + str(ClusteringVQEObj.vqe.Hs.N) + "n" + str(
         int(jnp.sqrt(ClusteringVQEObj.vqe.Hs.n_states))) + "c" + str(ClusteringVQEObj.num_clusters) + "m" + str(
         mode.value))
+print("Accuracy of clustering: " + str(ClusteringVQEObj.compute_accuracy()))
 
 # ClusteringVQEObj = load("../../data/clustering/clusters/N6n100c3")
 visualize_clusters(ClusteringVQEObj.clusters, ClusteringVQEObj.vqe.Hs)
