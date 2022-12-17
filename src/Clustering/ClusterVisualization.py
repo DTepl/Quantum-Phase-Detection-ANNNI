@@ -8,16 +8,22 @@ from matplotlib import pyplot as plt
 from Clustering import ClusteringVQE, load, Mode
 from PhaseEstimation import general as qmlgen
 
-from PhaseEstimation.visualization import getlines
-from matplotlib import rc
 
-rc("text", usetex=False)
+def getlines(
+        func: Callable, xrange: List[float], side: int, color: str, res: int = 100
+):
+    """
+    Plot function func from xrange[0] to xrange[1]
+    """
+    xs = jnp.linspace(xrange[0], xrange[1], res)
+    ys = func(xs)
+    plt.plot(side * xs - 0.5, side - ys * side / 2 - 0.5, color=color, alpha=0.8)
 
 
 def visualize_clusters(clusters: List[List], hamiltonians: qml.ops.qubit.hamiltonian.Hamiltonian, morelines=False):
     plt.figure(figsize=(8, 6), dpi=80)
     phases = mpl.colors.ListedColormap(
-        ["lightcoral", "skyblue", "black", "palegreen", "yellow"]
+        ["lightcoral", "orange", "palegreen", "yellow", "skyblue"]
     )
     norm = mpl.colors.BoundaryNorm(jnp.arange(0, len(clusters) + 1), phases.N)
     side = int(jnp.sqrt(hamiltonians.n_states))
@@ -44,8 +50,8 @@ def visualize_clusters(clusters: List[List], hamiltonians: qml.ops.qubit.hamilto
         fontsize=18,
     )
 
-    getlines(qmlgen.paraanti, [0.5, 1], side, "lightgreen", res=100)
-    getlines(qmlgen.paraferro, [0, 0.5], side, "lightgreen", res=100)
+    getlines(qmlgen.paraanti, [0.5, 1], side, "black", res=100)
+    getlines(qmlgen.paraferro, [0, 0.5], side, "black", res=100)
     if morelines:
         getlines(qmlgen.peshel_emery, [0, 0.5], side, "cyan", res=100)
         getlines(qmlgen.b1, [0.5, 1], side, "blue", res=100)
@@ -59,7 +65,7 @@ def visualize_clusters(clusters: List[List], hamiltonians: qml.ops.qubit.hamilto
 
 mode = Mode.analytical
 ClusteringVQEObj = ClusteringVQE("../../data/vqes/ANNNI/N10n100", 3, 50, mode=mode)
-ClusteringVQEObj.cluster(threshold=0.01)
+ClusteringVQEObj.cluster(threshold=0.005)
 ClusteringVQEObj.save(
     "../../data/clustering/clusters/N" + str(ClusteringVQEObj.vqe.Hs.N) + "n" + str(
         int(jnp.sqrt(ClusteringVQEObj.vqe.Hs.n_states))) + "c" + str(ClusteringVQEObj.num_clusters) + "m" + str(
