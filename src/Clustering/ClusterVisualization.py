@@ -4,6 +4,7 @@ import matplotlib as mpl
 import jax.numpy as jnp
 import pennylane as qml
 
+from multiprocessing import Pool
 from matplotlib import pyplot as plt
 from Clustering import ClusteringVQE, load, Mode
 from PhaseEstimation import general as qmlgen
@@ -87,9 +88,12 @@ def load_cluster_visualize(N: int, n: int):
 
 
 def compute_statistics(N: int, n: int, mode: Mode, iterations: int):
+    clustering_vqe_obj = ClusteringVQE("../../data/vqes/ANNNI/N" + str(N) + "n" + str(n), 3, 50, mode=mode)
+
     accuracies = []
     for i in range(iterations):
-        accuracies.append(run_cluster_procedure(N, n, 50, mode, visualize=False))
+        clustering_vqe_obj.cluster(threshold=0.005)
+        accuracies.append(clustering_vqe_obj.compute_accuracy())
     accuracies = jnp.array(accuracies)
 
     out = "Statistics for N=" + str(N) + " and n=" + str(
@@ -103,9 +107,15 @@ def compute_statistics(N: int, n: int, mode: Mode, iterations: int):
     print(out)
 
 
-compute_statistics(4, 100, Mode.analytical, 100)
-compute_statistics(6, 10, Mode.analytical, 100)
-compute_statistics(6, 100, Mode.analytical, 100)
-compute_statistics(8, 100, Mode.analytical, 100)
-compute_statistics(10, 100, Mode.analytical, 100)
-compute_statistics(12, 100, Mode.analytical, 100)
+def compute_statistics_parallel():
+    args = [(4, 100, Mode.analytical, 3), (6, 10, Mode.analytical, 3), (6, 100, Mode.analytical, 3),
+            (8, 100, Mode.analytical, 3), (10, 100, Mode.analytical, 3), (12, 100, Mode.analytical, 3)]
+
+    pool = Pool(processes=len(args))
+    pool.starmap_async(compute_statistics, args)
+    pool.close()
+    pool.join()
+
+
+if __name__ == '__main__':
+    compute_statistics_parallel()
