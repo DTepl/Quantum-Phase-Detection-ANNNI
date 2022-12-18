@@ -1,4 +1,4 @@
-Statistics for N=6 and n=10 after 100 iterations:
+Statistics for N=6 and n=10 after 200 iterations:
 Mode - analytical
-Mean accuracy - 0.8412
-Standard Deviation - 0.13530914
+Mean accuracy - 0.86294997
+Standard Deviation - 0.122930065

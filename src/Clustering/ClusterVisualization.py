@@ -109,8 +109,8 @@ def compute_statistics(N: int, n: int, mode: Mode, iterations: int):
 
 
 def compute_statistics_parallel():
-    args = [(4, 100, Mode.analytical, 100), (6, 10, Mode.analytical, 100), (6, 100, Mode.analytical, 100),
-            (8, 100, Mode.analytical, 100), (10, 100, Mode.analytical, 100), (12, 100, Mode.analytical, 100)]
+    args = [(4, 100, Mode.analytical, 200), (6, 10, Mode.analytical, 200), (6, 100, Mode.analytical, 200),
+            (8, 100, Mode.analytical, 200), (10, 100, Mode.analytical, 200), (12, 100, Mode.analytical, 200)]
 
     pool = Pool(processes=len(args))
     pool.starmap_async(compute_statistics, args)
@@ -120,3 +120,4 @@ def compute_statistics_parallel():
 
 if __name__ == '__main__':
     compute_statistics_parallel()
+    # run_cluster_procedure(12, 100, 50, Mode.analytical, threshold=0.005)
