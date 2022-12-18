@@ -1,0 +1,4 @@
+Statistics for N=4 and n=100 after 100 iterations:
+Mode - analytical
+Mean accuracy - 0.92020696
+Standard Deviation - 0.06536963
