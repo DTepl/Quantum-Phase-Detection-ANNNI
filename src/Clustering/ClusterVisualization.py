@@ -93,7 +93,7 @@ def compute_statistics(N: int, n: int, mode: Mode, iterations: int):
     accuracies = jnp.array(accuracies)
 
     out = "Statistics for N=" + str(N) + " and n=" + str(
-        n) + " after " + str(iterations) + " iterations" + ":\nMeanaccuracy - " + str(
+        n) + " after " + str(iterations) + " iterations" + ":\nMode - " + mode.name + "\nMean accuracy - " + str(
         jnp.mean(accuracies)) + "\nStandard Deviation - " + str(jnp.std(accuracies))
 
     with open("../../data/clustering/statistics/N" + str(N) + "n" + str(n) + "_statistics.txt", "w") as file:
@@ -103,4 +103,9 @@ def compute_statistics(N: int, n: int, mode: Mode, iterations: int):
     print(out)
 
 
-compute_statistics(6, 100, Mode.analytical, 3)
+compute_statistics(4, 100, Mode.analytical, 100)
+compute_statistics(6, 10, Mode.analytical, 100)
+compute_statistics(6, 100, Mode.analytical, 100)
+compute_statistics(8, 100, Mode.analytical, 100)
+compute_statistics(10, 100, Mode.analytical, 100)
+compute_statistics(12, 100, Mode.analytical, 100)
