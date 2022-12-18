@@ -63,14 +63,36 @@ def visualize_clusters(clusters: List[List], hamiltonians: qml.ops.qubit.hamilto
     plt.show()
 
 
-mode = Mode.analytical
-ClusteringVQEObj = ClusteringVQE("../../data/vqes/ANNNI/N10n100", 3, 50, mode=mode)
-ClusteringVQEObj.cluster(threshold=0.001)
-ClusteringVQEObj.save(
-    "../../data/clustering/clusters/N" + str(ClusteringVQEObj.vqe.Hs.N) + "n" + str(
-        int(jnp.sqrt(ClusteringVQEObj.vqe.Hs.n_states))) + "c" + str(ClusteringVQEObj.num_clusters) + "m" + str(
-        mode.value))
-print("Accuracy of clustering: " + str(ClusteringVQEObj.compute_accuracy()))
+def run_cluster_procedure(N: int, n: int, max_iterations, mode: Mode, threshold=0.001, visualize=True):
+    clustering_vqe_obj = ClusteringVQE("../../data/vqes/ANNNI/N" + str(N) + "n" + str(n), 3, max_iterations,
+                                       mode=mode)
+    clustering_vqe_obj.cluster(threshold=threshold)
+    clustering_vqe_obj.save(
+        "../../data/clustering/clusters/N" + str(clustering_vqe_obj.vqe.Hs.N) + "n" + str(
+            int(jnp.sqrt(clustering_vqe_obj.vqe.Hs.n_states))) + "c" + str(
+            clustering_vqe_obj.num_clusters) + "m" + str(
+            mode.value))
 
-# ClusteringVQEObj = load("../../data/clustering/clusters/N6n100c3")
-visualize_clusters(ClusteringVQEObj.clusters, ClusteringVQEObj.vqe.Hs)
+    if visualize:
+        visualize_clusters(clustering_vqe_obj.clusters, clustering_vqe_obj.vqe.Hs)
+
+    accuracy = clustering_vqe_obj.compute_accuracy()
+    print("Accuracy of clustering: " + str(accuracy))
+    return accuracy
+
+
+def load_cluster_visualize(N: int, n: int):
+    clustering_vqe_obj = load("../../data/clustering/clusters/N" + str(N) + "n" + str(n) + "c3")
+    visualize_clusters(clustering_vqe_obj.clusters, clustering_vqe_obj.vqe.Hs)
+
+
+def compute_statistics(N: int, n: int, mode: Mode, iterations: int):
+    accuracies = []
+    for i in range(iterations):
+        accuracies.append(run_cluster_procedure(N, n, 50, mode, visualize=False))
+    accuracies = jnp.array(accuracies)
+    print("Statistics for N=" + str(N) + " and n=" + str(n) + ":\nMean accuracy - " + str(
+        jnp.mean(accuracies)) + "\nStandard Deviation - " + str(jnp.std(accuracies)))
+
+
+compute_statistics(6, 100, Mode.analytical, 3)
