@@ -88,7 +88,8 @@ def load_cluster_visualize(N: int, n: int):
 
 
 def compute_statistics(N: int, n: int, mode: Mode, iterations: int):
-    clustering_vqe_obj = ClusteringVQE("../../data/vqes/ANNNI/N" + str(N) + "n" + str(n), 3, 50, mode=mode)
+    clustering_vqe_obj = ClusteringVQE("../../data/vqes/ANNNI/N" + str(N) + "n" + str(n), 3, 50, mode=mode,
+                                       show_progress=False)
 
     accuracies = []
     for i in range(iterations):
