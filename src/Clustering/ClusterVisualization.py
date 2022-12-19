@@ -21,7 +21,8 @@ def getlines(
     plt.plot(side * xs - 0.5, side - ys * side / 2 - 0.5, color=color, alpha=0.8)
 
 
-def visualize_clusters(clusters: List[List], hamiltonians: qml.ops.qubit.hamiltonian.Hamiltonian, morelines=False):
+def visualize_clusters(clusters: List[List], hamiltonians: qml.ops.qubit.hamiltonian.Hamiltonian, mode: Mode,
+                       morelines=False):
     plt.figure(figsize=(8, 6), dpi=80)
     phases = mpl.colors.ListedColormap(
         ["lightcoral", "orange", "palegreen", "yellow", "skyblue"]
@@ -60,7 +61,7 @@ def visualize_clusters(clusters: List[List], hamiltonians: qml.ops.qubit.hamilto
     plt.colorbar(sc)
     plt.savefig(
         "../../data/clustering/figures/clustering_meaningParams_N" + str(
-            hamiltonians.N) + "n" + str(side) + "c" + str(len(clusters)) + ".png")
+            hamiltonians.N) + "n" + str(side) + "c" + str(len(clusters)) + "m" + str(mode.value) + ".png")
     plt.show()
 
 
@@ -75,7 +76,7 @@ def run_cluster_procedure(N: int, n: int, max_iterations, mode: Mode, threshold=
             mode.value))
 
     if visualize:
-        visualize_clusters(clustering_vqe_obj.clusters, clustering_vqe_obj.vqe.Hs)
+        visualize_clusters(clustering_vqe_obj.clusters, clustering_vqe_obj.vqe.Hs, mode)
 
     accuracy = clustering_vqe_obj.compute_accuracy()
     print("Accuracy of clustering: " + str(accuracy))
@@ -119,5 +120,5 @@ def compute_statistics_parallel():
 
 
 if __name__ == '__main__':
-    compute_statistics_parallel()
-    # run_cluster_procedure(12, 100, 50, Mode.analytical, threshold=0.005)
+    # compute_statistics_parallel()
+    run_cluster_procedure(10, 100, 50, Mode.vqe, threshold=0.005)
